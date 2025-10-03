@@ -682,6 +682,13 @@ namespace Hpdi.Vss2Git
 
         private bool WriteRevisionTo(string physical, int version, string destPath)
         {
+            // don't try to write file contents into a directory
+            if (Directory.Exists(destPath))
+            {
+                logger.WriteLine("WARN: Skipping write to directory path {0} (likely folder/project revision).", destPath);
+                return false;
+            }
+
             VssFile item;
             VssFileRevision revision;
             Stream contents;
@@ -726,6 +733,13 @@ namespace Hpdi.Vss2Git
 
         private void WriteStream(Stream inputStream, string path)
         {
+            // protect against directory paths
+            if (Directory.Exists(path))
+            {
+                logger.WriteLine("WARN: WriteStream called with directory path {0}; skipping.", path);
+                return;
+            }
+
             Directory.CreateDirectory(Path.GetDirectoryName(path));
 
             using (var outputStream = new FileStream(
