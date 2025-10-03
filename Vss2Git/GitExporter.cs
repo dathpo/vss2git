@@ -91,13 +91,24 @@ namespace Hpdi.Vss2Git
                 logger.WriteSectionSeparator();
                 LogStatus(work, "Initializing Git repository");
 
-                // create repository directory if it does not exist
-                if (!Directory.Exists(repoPath))
+                var pathMapper = new VssPathMapper();
+
+                // create mappings for root projects
+                string realRepoPath = repoPath;
+                foreach (var rootProject in revisionAnalyzer.RootProjects)
                 {
-                    Directory.CreateDirectory(repoPath);
+                    var rootPath = VssPathMapper.GetWorkingPath(repoPath, rootProject.Path);
+                    realRepoPath = rootPath;
+                    pathMapper.SetProjectPath(rootProject.PhysicalName, rootPath, rootProject.Path);
                 }
 
-                var git = new GitWrapper(repoPath, logger);
+                // create repository directory if it does not exist
+                if (!Directory.Exists(realRepoPath))
+                {
+                    Directory.CreateDirectory(realRepoPath);
+                }
+
+                var git = new GitWrapper(realRepoPath, logger);
                 git.CommitEncoding = commitEncoding;
 
                 while (!git.FindExecutable())
@@ -124,15 +135,6 @@ namespace Hpdi.Vss2Git
                     {
                         git.SetConfig("i18n.commitencoding", commitEncoding.WebName);
                     });
-                }
-
-                var pathMapper = new VssPathMapper();
-
-                // create mappings for root projects
-                foreach (var rootProject in revisionAnalyzer.RootProjects)
-                {
-                    var rootPath = VssPathMapper.GetWorkingPath(repoPath, rootProject.Path);
-                    pathMapper.SetProjectPath(rootProject.PhysicalName, rootPath, rootProject.Path);
                 }
 
                 // replay each changeset
